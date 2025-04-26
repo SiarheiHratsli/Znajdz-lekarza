@@ -5,11 +5,10 @@ app = Flask(__name__)
 
 def get_db_connection():
     conn = mysql.connector.connect(
-        host='localhost',
+        host='db',
         user='root',
-        password='root',
+        password='rootpassword',
         database='proj',
-        unix_socket='/Applications/MAMP/tmp/mysql/mysql.sock'
     )
     return conn
 
@@ -94,4 +93,4 @@ def reserve():
 
 
 if __name__ == '__main__':
-    app.run(port=5005)
+    app.run(host="0.0.0.0", port=5005)
