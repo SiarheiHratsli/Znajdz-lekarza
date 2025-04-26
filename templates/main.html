@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Znajdź lekarza</title>
+    <link href="../static/styles.css" rel="stylesheet">
+</head>
+<body>
+<header class="header">
+    <div class="container">
+        <a href="/" class="logo-link">
+            <h1>Znajdź lekarza</h1>
+        </a>
+        <div class="auth-links">
+            <a href="/register" class="register">Zarejestruj się</a>
+            <a href="/login" class="login">Zaloguj się</a>
+        </div>
+    </div>
+</header>
+
+<main class="main-content">
+    <section class="hero">
+        <div class="container">
+            <h2>Znajdź lekarza i umów wizytę</h2>
+            <p>Szukaj wśród setki lekarzy.</p>
+
+            <form class="search-form" action="/search" method="GET">
+                <div class="search-options">
+                    <label>
+                        <input type="radio" name="visit_type" value="gabinet" checked>
+                        W gabinecie
+                    </label>
+                    <label>
+                        <input type="radio" name="visit_type" value="online">
+                        Online
+                    </label>
+                </div>
+
+                <div class="search-fields">
+                    <select name="city_district">
+                        <option value="">miasto lub dzielnica</option>
+                        {% for city in cities %}
+                            <option value="{{ city.id }}">{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="specialization">
+                        <option value="">specjalizacja lub badanie</option>
+                        {% for specialization in specializations %}
+                            <option value="{{ specialization.id }}">{{ specialization.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="search-button">Szukaj</button>
+            </form>
+
+{#            <div class="hero-image">#}
+{#                <img src="../static/people.png" alt="Hero image">#}
+{#            </div>#}
+        </div>
+    </section>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="footer-columns">
+            <div class="column">
+                <h3>Dla pacjentów</h3>
+                <ul>
+                    <li><a href="#">Lekarze</a></li>
+                    <li><a href="#">Placówki medyczne</a></li>
+                    <li><a href="#">Pytania i odpowiedzi</a></li>
+                    <li><a href="#">Usługi i zabiegi</a></li>
+                    <li><a href="#">Choroby</a></li>
+                    <li><a href="#">Pomoc</a></li>
+                    <li><a href="#">Aplikacje mobilne</a></li>
+                    <li><a href="#">Blog dla pacjentów</a></li>
+                </ul>
+            </div>
+            <div class="column">
+                <h3>O nas</h3>
+                <ul>
+                    <li><a href="#">Placówki</a></li>
+                    <li><a href="#">Lekarze</a></li>
+                    <li><a href="#">Pytania i odpowiedzi</a></li>
+                    <li><a href="#">Usługi</a></li>
+                    <li><a href="#">Pomoc</a></li>
+                </ul>
+            </div>
+            <div class="column">
+                <h3>Dla lekarzy</h3>
+                <ul>
+                    <li><a href="#">Praca</a></li>
+                    <li><a href="#">Jak się dostać do naszej listy lekarzy</a></li>
+                    <li><a href="#">Pytania i odpowiedzi</a></li>
+                    <li><a href="#">Usługi</a></li>
+                    <li><a href="#">Pomoc</a></li>
+                </ul>
+            </div>
+            <div class="column">
+                <h3>Znajdź lekarza</h3>
+                <address>
+                    Znajdź lekarza Sp. z o.o.<br>
+                    ul. Kamienna 1<br>
+                    55-055 Wrocław, Polska<br>
+                    NIP: 1111111111<br>
+                    KRS: 1111111111<br>
+                    REGON: 1111111111
+                </address>
+            </div>
+        </div>
+    </div>
+</footer>
+</body>
+</html>
