@@ -469,6 +469,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `last_name` VARCHAR(100) NOT NULL,
   `gender` ENUM('M', 'F', 'Other') NOT NULL,
   `birth_date` DATE NOT NULL,
+  `is_email_confirmed` BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

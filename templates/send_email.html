@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyślij e-mail</title>
+</head>
+<body>
+    <h1>Wyślij e-mail</h1>
+    <form method="POST" action="/send_email">
+        <label for="email">Adres e-mail odbiorcy:</label><br>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="subject">Temat:</label><br>
+        <input type="text" id="subject" name="subject" required><br><br>
+
+        <label for="body">Treść:</label><br>
+        <textarea id="body" name="body" rows="5" required></textarea><br><br>
+
+        <button type="submit">Wyślij e-mail</button>
+    </form>
+</body>
+</html>

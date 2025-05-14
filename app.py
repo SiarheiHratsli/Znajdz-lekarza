@@ -1,13 +1,20 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 from config import *
 from db.models.models import *
 from functools import wraps
+from flask_mail import Mail, Message
 
 app = Flask(__name__)
 app.config.from_object(get_config())
 db.init_app(app)
+mail = Mail(app)
+
+def get_serializer():
+    return URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
 
 def login_required(f):
     @wraps(f)
@@ -18,6 +25,58 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+        if user:
+            s = get_serializer()
+            token = s.dumps(user.id, salt='password-reset')
+            reset_url = url_for('reset_password', token=token, _external=True)
+            body = f"Aby zresetować hasło kliknij w link:\n{reset_url}\n\nJeśli to nie Ty, zignoruj tę wiadomość."
+            msg = Message(subject="Reset hasła", recipients=[email], body=body)
+            try:
+                mail.send(msg)
+                flash('Wysłaliśmy e-mail z linkiem do zresetowania hasła.', 'info')
+            except Exception as e:
+                flash('Błąd przy wysyłaniu e-maila: ' + str(e), 'danger')
+        else:
+            flash('Jeśli podany e-mail istnieje, wyślemy na niego instrukcję resetu.', 'info')
+        return redirect(url_for('login'))
+    return render_template('reset_password_request.html')
+
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    s = get_serializer()
+    try:
+        user_id = s.loads(token, salt='password-reset', max_age=600) # ważny przez 10 minut
+    except SignatureExpired:
+        flash('Link do resetowania hasła wygasł.', 'danger')
+        return redirect(url_for('reset_password_request'))
+    except BadSignature:
+        flash('Nieprawidłowy link do resetowania hasła.', 'danger')
+        return redirect(url_for('reset_password_request'))
+
+    user = User.query.get(user_id)
+    if not user:
+        flash('Użytkownik nie istnieje.', 'danger')
+        return redirect(url_for('reset_password_request'))
+
+    if request.method == 'POST':
+        password = request.form['password']
+        password2 = request.form['password2']
+        if password != password2:
+            flash('Hasła się nie zgadzają.', 'danger')
+            return redirect(request.url)
+        user.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        db.session.commit()
+        flash('Hasło zostało zmienione. Możesz się zalogować.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html')
 
 @app.route('/')
 def main():
@@ -48,7 +107,7 @@ def search():
 
     return render_template(
         'search.html', doctors=doctors, city_district=city, specialization=specialization
-***REMOVED***
+    )
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -82,14 +141,76 @@ def register():
             last_name=last_name,
             gender=gender,
             birth_date=birth_date
-    ***REMOVED***
+        )
         db.session.add(new_user)
         db.session.commit()
 
-        flash('Rejestracja zakończona sukcesem! Możesz się teraz zalogować.', 'success')
+        s = get_serializer()
+        token = s.dumps(new_user.id, salt='email-confirm')
+        confirm_url = url_for('confirm_email', token=token, _external=True)
+        body = f"Aby potwierdzić adres e-mail, kliknij w link:\n{confirm_url}\n\nJeśli to nie Ty, zignoruj tę wiadomość."
+        msg = Message(subject="Potwierdzenie rejestracji", recipients=[email], body=body)
+        try:
+            mail.send(msg)
+            flash('Rejestracja zakończona sukcesem! Sprawdź pocztę i potwierdź adres e-mail.', 'success')
+        except Exception as e:
+            flash('Błąd przy wysyłaniu maila potwierdzającego: ' + str(e), 'danger')
         return redirect(url_for('login'))
 
     return render_template("register.html")
+
+
+@app.route('/confirm_email/<token>', methods=['GET', 'POST'])
+def confirm_email(token):
+    s = get_serializer()
+    try:
+        user_id = s.loads(token, salt='email-confirm', max_age=3600*24)  # 24h ważność
+    except SignatureExpired:
+        flash('Link do potwierdzenia e-maila wygasł.', 'danger')
+        return redirect(url_for('login'))
+    except BadSignature:
+        flash('Nieprawidłowy link do potwierdzenia e-maila.', 'danger')
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if not user:
+        flash('Użytkownik nie istnieje.', 'danger')
+        return redirect(url_for('register'))
+
+    if request.method == 'POST':
+        if user.is_email_confirmed:
+            flash('Adres e-mail już został potwierdzony.', 'info')
+        else:
+            user.is_email_confirmed = True
+            db.session.commit()
+            flash('Adres e-mail został potwierdzony! Możesz się zalogować.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('confirm_email.html', user=user)
+
+
+@app.route('/resend_confirmation/<int:user_id>')
+def resend_confirmation(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        flash('Użytkownik nie istnieje.', 'danger')
+        return redirect(url_for('login'))
+
+    if user.is_email_confirmed:
+        flash('Adres e-mail jest już potwierdzony.', 'info')
+        return redirect(url_for('login'))
+
+    s = get_serializer()
+    token = s.dumps(user.id, salt='email-confirm')
+    confirm_url = url_for('confirm_email', token=token, _external=True)
+    body = f"Aby potwierdzić adres e-mail, kliknij w link:\n{confirm_url}\n\nJeśli to nie Ty, zignoruj tę wiadomość."
+    msg = Message(subject="Potwierdzenie rejestracji", recipients=[user.email], body=body)
+    try:
+        mail.send(msg)
+        flash('Ponownie wysłano e-mail z potwierdzeniem!', 'info')
+    except Exception as e:
+        flash('Błąd przy wysyłaniu maila potwierdzającego: ' + str(e), 'danger')
+    return redirect(url_for('login'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -104,12 +225,21 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
+            if not user.is_email_confirmed:
+                resend_url = url_for('resend_confirmation', user_id=user.id)
+                flash(
+                    f'Najpierw potwierdź adres e-mail, sprawdź skrzynkę pocztową. '
+                    f'<a href="{resend_url}">Wyślij ponownie maila potwierdzającego</a>',
+                    'warning'
+                )
+                return redirect(url_for('login'))
             session['user_id'] = user.id
+        if user and check_password_hash(user.password_hash, password):
             flash('Login successful.', 'success')
             resp = redirect(url_for('main'))
             resp.set_cookie('is_logged_in', 'true', max_age=3600)  # Ważne przez 4 godziny
             return resp
-    ***REMOVED***
+        else:
             flash('Invalid credentials.', 'danger')
 
     return render_template("login.html")
