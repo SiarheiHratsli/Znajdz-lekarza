@@ -5,93 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rejestracja - Znajdź lekarza</title>
     <link href="../static/styles.css" rel="stylesheet">
+    <script>
+        function showStep(step) {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((s, index) => {
+                s.style.display = index === step ? 'block' : 'none';
+            });
+        }
+
+        function nextStep(currentStep) {
+            if (validateStep(currentStep)) {
+                showStep(currentStep + 1);
+            }
+        }
+
+        function validateStep(step) {
+            const inputs = document.querySelectorAll(`.step[data-step="${step}"] input`);
+            for (const input of inputs) {
+                if (!input.checkValidity()) {
+                    alert(`Pole "${input.name}" jest wymagane.`);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => showStep(0));
+    </script>
 </head>
 <body>
-<header class="header">
-    <div class="container">
-        <a href="/" class="logo-link">
-            <h1>Znajdź lekarza</h1>
-        </a>
-        <div class="auth-links">
-            <a href="/register" class="register">Zarejestruj się</a>
-            <a href="/login" class="login">Zaloguj się</a>
-        </div>
-    </div>
+<header>
+    <h1>Znajdź lekarza - Rejestracja</h1>
 </header>
-
-<main class="main-content">
-    <section class="auth-section">
-        <div class="container">
-            <h2>Rejestracja</h2>
-            <form class="auth-form" action="/register" method="POST">
-                <div class="form-field">
-                    <label for="email">Adres e-mail:</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                <div class="form-field">
-                    <label for="password">Hasło:</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <div class="form-field">
-                    <label for="password_confirmation">Potwierdź hasło:</label>
-                    <input type="password" id="password_confirmation" name="password_confirmation" required>
-                </div>
-                <button type="submit" class="submit-button">Zarejestruj się</button>
-            </form>
-            <p class="auth-link">Masz już konto? <a href="login.html">Zaloguj się</a></p>
+<main>
+    <form action="/register" method="POST">
+        <!-- Krok 1 -->
+        <div class="step" data-step="0">
+            <label for="email">Adres e-mail:</label>
+            <input type="email" id="email" name="email" required>
+            <label for="password">Hasło:</label>
+            <input type="password" id="password" name="password" required>
+            <label for="password_confirmation">Potwierdź hasło:</label>
+            <input type="password" id="password_confirmation" name="password_confirmation" required>
+            <button type="button" onclick="nextStep(0)">Dalej</button>
         </div>
-    </section>
+
+        <!-- Krok 2 -->
+        <div class="step" data-step="1" style="display: none;">
+            <label for="first_name">Imię:</label>
+            <input type="text" id="first_name" name="first_name" required>
+            <label for="last_name">Nazwisko:</label>
+            <input type="text" id="last_name" name="last_name" required>
+            <label for="gender">Płeć:</label>
+            <select id="gender" name="gender" required>
+                <option value="">Wybierz...</option>
+                <option value="M">Mężczyzna</option>
+                <option value="F">Kobieta</option>
+                <option value="Other">Inna</option>
+            </select>
+            <button type="button" onclick="nextStep(1)">Dalej</button>
+        </div>
+
+        <!-- Krok 3 -->
+        <div class="step" data-step="2" style="display: none;">
+            <label for="birth_date">Data urodzenia:</label>
+            <input type="date" id="birth_date" name="birth_date" required>
+            <button type="submit">Zarejestruj się</button>
+        </div>
+    </form>
 </main>
-
-<footer class="footer">
-    <div class="container">
-        <div class="footer-columns">
-            <div class="column">
-                <h3>Dla pacjentów</h3>
-                <ul>
-                    <li><a href="#">Lekarze</a></li>
-                    <li><a href="#">Placówki medyczne</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi i zabiegi</a></li>
-                    <li><a href="#">Choroby</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                    <li><a href="#">Aplikacje mobilne</a></li>
-                    <li><a href="#">Blog dla pacjentów</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>O nas</h3>
-                <ul>
-                    <li><a href="#">Placówki</a></li>
-                    <li><a href="#">Lekarze</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>Dla lekarzy</h3>
-                <ul>
-                    <li><a href="#">Praca</a></li>
-                    <li><a href="#">Jak się dostać do naszej listy lekarzy</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>Znajdź lekarza</h3>
-                <address>
-                    Znajdź lekarza Sp. z o.o.<br>
-                    ul. Kamienna 1<br>
-                    55-055 Wrocław, Polska<br>
-                    NIP: 1111111111<br>
-                    KRS: 1111111111<br>
-                    REGON: 1111111111
-                </address>
-            </div>
-        </div>
-    </div>
-</footer>
 </body>
 </html>
