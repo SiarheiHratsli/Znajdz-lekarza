@@ -16,4 +16,4 @@ zipp==3.21.0
 cryptography
 dotenv
 flask_mail
-openai
+openai==0.28

@@ -34,6 +34,28 @@ def login_required(f):
     return decorated_function
 
 
+@app.context_processor
+def inject_user():
+    """
+    Dodaje zmienną current_user do kontekstu szablonu.
+    """
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user:
+            user.is_authenticated = True
+            return {'current_user': user}
+
+    class AnonymousUser:
+        @property
+        def is_authenticated(self):
+            return False
+
+        def __bool__(self):
+            return False
+
+    return {'current_user': AnonymousUser()}
+
+
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -177,11 +199,6 @@ def get_available_terms_for_doctor(doctor, days_ahead=7):
 def doctors():
     doctors = Doctor.query.all()
     return render_template('doctors.html', doctors=doctors)
-
-@app.route('/specializations')
-def specializations():
-    specializations = Specialization.query.all()
-    return render_template('specializations.html', specializations=specializations)
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
@@ -377,18 +394,23 @@ def book_appointment():
     - appointment_date: data i godzina spotkania w formacie "YYYY-MM-DD HH:MM:SS"
     """
     try:
+        # Pobranie danych z formularza
         doctor_id = request.form.get('doctor_id')
         appointment_date_str = request.form.get('appointment_date')
-        notes = request.form.get('notes', '')
+        notes = request.form.get('notes', '')  # Opcjonalne uwagi
 
-        # Walidacja danych
+        app.logger.debug(f"Otrzymana data rezerwacji: {appointment_date_str}")
+
         if not doctor_id or not appointment_date_str:
             flash('Błąd: Brak wymaganych danych do rezerwacji wizyty.', 'danger')
             return redirect(request.referrer or url_for('search'))
 
         try:
             appointment_date = datetime.strptime(appointment_date_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
+
+            app.logger.debug(f"Data po konwersji: {appointment_date}")
+        except ValueError as e:
+            app.logger.error(f"Błąd konwersji daty: {e}")
             flash('Błąd: Nieprawidłowy format daty i godziny.', 'danger')
             return redirect(request.referrer or url_for('search'))
 
@@ -401,9 +423,10 @@ def book_appointment():
             flash('Błąd: Wybrany lekarz nie istnieje.', 'danger')
             return redirect(request.referrer or url_for('search'))
 
-        existing_appointment = Appointment.query.filter_by(
-            doctor_id=doctor_id,
-            appointment_date=appointment_date
+        existing_appointment = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date == appointment_date,
+            Appointment.status != 'cancelled'
         ).first()
 
         if existing_appointment:
@@ -421,12 +444,15 @@ def book_appointment():
         db.session.add(new_appointment)
         db.session.commit()
 
-        flash(f'Wizyta została pomyślnie zarezerwowana na {appointment_date.strftime("%d.%m.%Y o %H:%M")}', 'success')
+        display_date = appointment_date + timedelta(hours=2)
+
+        flash(f'Wizyta została pomyślnie zarezerwowana na {display_date.strftime("%d.%m.%Y o %H:%M")}', 'success')
 
         return redirect(url_for('my_appointments'))
 
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Błąd rezerwacji wizyty: {str(e)}")
         flash(f'Wystąpił błąd podczas rezerwacji wizyty: {str(e)}', 'danger')
         return redirect(request.referrer or url_for('search'))
 
@@ -492,6 +518,192 @@ def cancel_appointment(appointment_id):
 
     flash('Wizyta została anulowana.', 'success')
     return redirect(url_for('my_appointments'))
+
+
+@app.route('/profil')
+@login_required
+def user_profile():
+    """
+    Strona profilu użytkownika.
+    Pokazuje dane użytkownika oraz umożliwia ich edycję.
+    """
+    user = User.query.get(session['user_id'])
+
+    appointments = Appointment.query.filter_by(user_id=session['user_id']).order_by(
+        Appointment.appointment_date.desc()).all()
+
+    appointments_data = []
+    for appointment in appointments:
+        doctor = Doctor.query.get(appointment.doctor_id)
+        appointment_data = {
+            'id': appointment.id,
+            'doctor_name': f"{doctor.first_name} {doctor.last_name}",
+            'doctor_specialization': doctor.specialization.name if doctor.specialization else 'Brak specjalizacji',
+            'appointment_date': appointment.appointment_date,
+            'status': appointment.status,
+            'notes': appointment.notes
+        }
+        appointments_data.append(appointment_data)
+
+    reviews = Review.query.filter_by(user_id=session['user_id']).order_by(Review.created_at.desc()).all()
+    reviews_data = []
+    for review in reviews:
+        doctor = Doctor.query.get(review.doctor_id)
+        appointment = Appointment.query.get(review.appointment_id)
+        review_data = {
+            'id': review.id,
+            'doctor_name': f"{doctor.first_name} {doctor.last_name}",
+            'doctor_specialization': doctor.specialization.name if doctor.specialization else 'Brak specjalizacji',
+            'appointment_date': appointment.appointment_date if appointment else None,
+            'rating': review.rating,
+            'comment': review.comment,
+            'created_at': review.created_at
+        }
+        reviews_data.append(review_data)
+
+    return render_template('user_profile.html', user=user, appointments=appointments_data, reviews=reviews_data)
+
+
+@app.route('/profil/update', methods=['POST'])
+@login_required
+def update_profile():
+    """
+    Endpoint do aktualizacji danych użytkownika.
+    """
+    user = User.query.get(session['user_id'])
+
+    if not user:
+        flash('Wystąpił błąd podczas aktualizacji profilu.', 'danger')
+        return redirect(url_for('user_profile'))
+
+    user.first_name = request.form.get('first_name', user.first_name)
+    user.last_name = request.form.get('last_name', user.last_name)
+    user.phone = request.form.get('phone', user.phone)
+
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    if current_password and new_password and confirm_password:
+        if not check_password_hash(user.password_hash, current_password):
+            flash('Aktualne hasło jest nieprawidłowe.', 'danger')
+            return redirect(url_for('user_profile'))
+
+        if new_password != confirm_password:
+            flash('Nowe hasła nie są zgodne.', 'danger')
+            return redirect(url_for('user_profile'))
+
+        user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+
+    try:
+        db.session.commit()
+        flash('Profil został zaktualizowany pomyślnie.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Wystąpił błąd podczas aktualizacji profilu: {str(e)}', 'danger')
+
+    return redirect(url_for('user_profile'))
+
+
+@app.route('/add_review/<int:appointment_id>', methods=['GET', 'POST'])
+@login_required
+def add_review(appointment_id):
+    """
+    Formularz dodawania opinii po zakończonej wizycie.
+    """
+    appointment = Appointment.query.get_or_404(appointment_id)
+
+    if appointment.user_id != session['user_id']:
+        flash('Nie masz uprawnień do wystawienia opinii dla tej wizyty.', 'danger')
+        return redirect(url_for('my_appointments'))
+
+    if appointment.status != 'completed':
+        flash('Możesz wystawić opinię tylko po zakończonej wizycie.', 'danger')
+        return redirect(url_for('my_appointments'))
+
+    existing_review = Review.query.filter_by(appointment_id=appointment_id).first()
+    if existing_review:
+        return redirect(url_for('edit_review', review_id=existing_review.id))
+
+    doctor = Doctor.query.get(appointment.doctor_id)
+
+    if request.method == 'POST':
+        rating = request.form.get('rating')
+        comment = request.form.get('comment', '')
+
+        if not rating or not rating.isdigit() or int(rating) < 1 or int(rating) > 5:
+            flash('Ocena musi być liczbą od 1 do 5.', 'danger')
+            return render_template('add_review.html', appointment=appointment, doctor=doctor)
+
+        review = Review(
+            user_id=session['user_id'],
+            doctor_id=doctor.id,
+            appointment_id=appointment_id,
+            rating=int(rating),
+            comment=comment
+        )
+
+        db.session.add(review)
+        db.session.commit()
+
+        flash('Dziękujemy za wystawienie opinii!', 'success')
+        return redirect(url_for('my_appointments'))
+
+    return render_template('add_review.html', appointment=appointment, doctor=doctor)
+
+
+@app.route('/edit_review/<int:review_id>', methods=['GET', 'POST'])
+@login_required
+def edit_review(review_id):
+    """
+    Formularz edycji istniejącej opinii.
+    """
+    review = Review.query.get_or_404(review_id)
+
+    if review.user_id != session['user_id']:
+        flash('Nie masz uprawnień do edycji tej opinii.', 'danger')
+        return redirect(url_for('my_appointments'))
+
+    appointment = Appointment.query.get(review.appointment_id)
+    doctor = Doctor.query.get(review.doctor_id)
+
+    if request.method == 'POST':
+        rating = request.form.get('rating')
+        comment = request.form.get('comment', '')
+
+        if not rating or not rating.isdigit() or int(rating) < 1 or int(rating) > 5:
+            flash('Ocena musi być liczbą od 1 do 5.', 'danger')
+            return render_template('edit_review.html', review=review, appointment=appointment, doctor=doctor)
+
+        review.rating = int(rating)
+        review.comment = comment
+        review.updated_at = datetime.now()
+
+        db.session.commit()
+
+        flash('Opinia została zaktualizowana!', 'success')
+        return redirect(url_for('user_profile'))
+
+    return render_template('edit_review.html', review=review, appointment=appointment, doctor=doctor)
+
+
+@app.route('/delete_review/<int:review_id>', methods=['POST'])
+@login_required
+def delete_review(review_id):
+    """
+    Usuwanie opinii.
+    """
+    review = Review.query.get_or_404(review_id)
+
+    if review.user_id != session['user_id']:
+        flash('Nie masz uprawnień do usunięcia tej opinii.', 'danger')
+        return redirect(url_for('user_profile'))
+
+    db.session.delete(review)
+    db.session.commit()
+
+    flash('Opinia została usunięta.', 'success')
+    return redirect(url_for('user_profile'))
 
 
 if __name__ == '__main__':

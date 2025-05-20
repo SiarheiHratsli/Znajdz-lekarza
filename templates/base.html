@@ -30,15 +30,14 @@
             <nav class="space-x-6">
                 <a href="/" class="text-gray-700 hover:text-indigo-600 font-medium transition">Strona główna</a>
                 <a href="/lekarze" class="text-gray-700 hover:text-indigo-600 font-medium transition">Lekarze</a>
-                <a href="/specjalizacje" class="text-gray-700 hover:text-indigo-600 font-medium transition">Specjalizacje</a>
                 <a href="/kontakt" class="text-gray-700 hover:text-indigo-600 font-medium transition">Kontakt</a>
-{#                {% if current_user.is_authenticated %}#}
+                {% if current_user.is_authenticated %}
                     <a href="/profil" class="text-gray-700 hover:text-indigo-600 font-medium transition">Mój profil</a>
                     <a href="/logout" class="ml-2 text-red-600 hover:text-red-700 font-medium transition">Wyloguj</a>
-{#                {% else %}#}
+                {% else %}
                     <a href="/login" class="text-gray-700 hover:text-indigo-600 font-medium transition">Zaloguj się</a>
                     <a href="/register" class="text-white bg-indigo-600 px-4 py-2 rounded shadow hover:bg-indigo-500 transition font-medium ml-2">Załóż konto</a>
-{#                {% endif %}#}
+                {% endif %}
             </nav>
         </div>
         {% endblock %}

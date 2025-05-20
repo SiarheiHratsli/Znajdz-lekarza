@@ -89,13 +89,15 @@ class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=True)  # Dodana kolumna
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())  # Dodana kolumna
 
     doctor = db.relationship('Doctor', back_populates='reviews')
     user = db.relationship('User', back_populates='reviews')
-
+    appointment = db.relationship('Appointment', backref=db.backref('review', lazy=True, uselist=False))  # Dodana relacja
 
 class Appointment(db.Model):
     __tablename__ = 'appointments'
@@ -110,5 +112,4 @@ class Appointment(db.Model):
 
     doctor = db.relationship('Doctor', back_populates='appointments')
     user = db.relationship('User', back_populates='appointments')
-
 
