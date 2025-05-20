@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from datetime import datetime, timedelta 
@@ -93,12 +93,12 @@ def main():
     return render_template('main.html', cities=cities, specializations=specializations)
 
 
-@app.route('/search', methods=['GET', 'POST'])
-@login_required
+@app.route('/search', methods=['GET'])
 def search():
     visit_type = request.args.get('visit_type', '')
     city_district = request.args.get('city_district', '')
     specialization = request.args.get('specialization', '')
+    sort = request.args.get('sort', 'best')
 
     query = Doctor.query
     if visit_type:
@@ -108,19 +108,72 @@ def search():
     if specialization:
         query = query.filter_by(specialization_id=specialization)
 
+    if sort == "soonest":
+        query = query.order_by(Doctor.rating.desc())
+    elif sort == "rating":
+        query = query.order_by(Doctor.rating.desc())
+    elif sort == "name":
+        query = query.order_by(Doctor.last_name.asc())
+    else:
+        query = query.order_by(Doctor.rating.desc())
+
     doctors = query.all()
 
-    city = City.query.get(city_district)
-    specialization = Specialization.query.get(specialization)
+    for doctor in doctors:
+        doctor.appointments = Appointment.query.filter_by(doctor_id=doctor.id).all()
+        doctor.available_terms = get_available_terms_for_doctor(doctor)
+
+    cities = City.query.all()
+    specializations = Specialization.query.all()
 
     return render_template(
-        'search.html', doctors=doctors, city_district=city, specialization=specialization
+        'search.html',
+        doctors=doctors,
+        cities=cities,
+        specializations=specializations
     )
+
+
+@app.template_filter('group_terms_by_day')
+def group_terms_by_day(terms):
+    """
+    Grupuje terminy według dni (format DD.MM)
+    """
+    result = {}
+    for term in terms:
+        day = term['datetime'].strftime("%d.%m")
+        if day not in result:
+            result[day] = []
+        result[day].append(term)
+    return result
+
+
+def get_available_terms_for_doctor(doctor, days_ahead=7):
+    """
+    Funkcja generuje terminy dla lekarza i oznacza zajęte na podstawie bazy danych.
+    """
+    today = datetime.today()
+    terms = []
+    for day in range(days_ahead):
+        date = today + timedelta(days=day)
+        for hour in range(8, 17):
+            term_datetime = datetime.combine(date, time(hour, 0))
+            is_taken = any(
+                appointment.appointment_date.date() == term_datetime.date() and
+                appointment.appointment_date.hour == term_datetime.hour and
+                appointment.status != 'cancelled'
+                for appointment in doctor.appointments
+            )
+            terms.append({
+                'datetime': term_datetime,
+                'is_taken': is_taken
+            })
+    return terms
 
 
 
  
-@app.route('/doctors')
+@app.route('/lekarze')
 def doctors():
     doctors = Doctor.query.all()
     return render_template('doctors.html', doctors=doctors)
@@ -312,6 +365,133 @@ def chat():
 
     except Exception as e:
         return jsonify({"error": f"Wystąpił nieoczekiwany błąd: {str(e)}"}), 500
+
+
+@app.route('/book_appointment', methods=['POST'])
+@login_required
+def book_appointment():
+    """
+    Endpoint do rezerwacji wizyty lekarskiej.
+    Wymaga przesłania:
+    - doctor_id: ID lekarza
+    - appointment_date: data i godzina spotkania w formacie "YYYY-MM-DD HH:MM:SS"
+    """
+    try:
+        doctor_id = request.form.get('doctor_id')
+        appointment_date_str = request.form.get('appointment_date')
+        notes = request.form.get('notes', '')
+
+        # Walidacja danych
+        if not doctor_id or not appointment_date_str:
+            flash('Błąd: Brak wymaganych danych do rezerwacji wizyty.', 'danger')
+            return redirect(request.referrer or url_for('search'))
+
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            flash('Błąd: Nieprawidłowy format daty i godziny.', 'danger')
+            return redirect(request.referrer or url_for('search'))
+
+        if appointment_date < datetime.now():
+            flash('Błąd: Nie można zarezerwować terminu w przeszłości.', 'danger')
+            return redirect(request.referrer or url_for('search'))
+
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            flash('Błąd: Wybrany lekarz nie istnieje.', 'danger')
+            return redirect(request.referrer or url_for('search'))
+
+        existing_appointment = Appointment.query.filter_by(
+            doctor_id=doctor_id,
+            appointment_date=appointment_date
+        ).first()
+
+        if existing_appointment:
+            flash('Błąd: Wybrany termin jest już zajęty. Proszę wybrać inny termin.', 'danger')
+            return redirect(request.referrer or url_for('search'))
+
+        new_appointment = Appointment(
+            doctor_id=doctor_id,
+            user_id=session['user_id'],
+            appointment_date=appointment_date,
+            status='pending',
+            notes=notes
+        )
+
+        db.session.add(new_appointment)
+        db.session.commit()
+
+        flash(f'Wizyta została pomyślnie zarezerwowana na {appointment_date.strftime("%d.%m.%Y o %H:%M")}', 'success')
+
+        return redirect(url_for('my_appointments'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Wystąpił błąd podczas rezerwacji wizyty: {str(e)}', 'danger')
+        return redirect(request.referrer or url_for('search'))
+
+
+@app.route('/my_appointments')
+@login_required
+def my_appointments():
+    """
+    Strona z listą wizyt użytkownika.
+    Automatycznie aktualizuje statusy przeszłych wizyt.
+    """
+    now = datetime.now()
+
+    past_appointments = Appointment.query.filter(
+        Appointment.user_id == session['user_id'],
+        Appointment.appointment_date < now,
+        Appointment.status.in_(['pending', 'confirmed'])
+    ).all()
+
+    if past_appointments:
+        for appointment in past_appointments:
+            appointment.status = 'completed'
+
+        db.session.commit()
+        print(f"Zaktualizowano {len(past_appointments)} wizyt na status 'completed'")
+
+    appointments = Appointment.query.filter_by(user_id=session['user_id']).order_by(Appointment.appointment_date).all()
+
+    appointments_data = []
+    for appointment in appointments:
+        doctor = Doctor.query.get(appointment.doctor_id)
+        appointment_data = {
+            'id': appointment.id,
+            'doctor_name': f"{doctor.first_name} {doctor.last_name}",
+            'doctor_specialization': doctor.specialization.name if doctor.specialization else 'Brak specjalizacji',
+            'appointment_date': appointment.appointment_date,
+            'status': appointment.status,
+            'notes': appointment.notes
+        }
+        appointments_data.append(appointment_data)
+
+    return render_template('my_appointments.html', appointments=appointments_data, now=now)
+
+
+@app.route('/cancel_appointment/<int:appointment_id>', methods=['POST'])
+@login_required
+def cancel_appointment(appointment_id):
+    """
+    Anulowanie wizyty.
+    """
+    appointment = Appointment.query.get(appointment_id)
+
+    if not appointment or appointment.user_id != session['user_id']:
+        flash('Nie masz uprawnień do anulowania tej wizyty lub wizyta nie istnieje.', 'danger')
+        return redirect(url_for('my_appointments'))
+
+    if appointment.appointment_date < datetime.now():
+        flash('Nie można anulować wizyty, która już się odbyła.', 'danger')
+        return redirect(url_for('my_appointments'))
+
+    appointment.status = 'cancelled'
+    db.session.commit()
+
+    flash('Wizyta została anulowana.', 'success')
+    return redirect(url_for('my_appointments'))
 
 
 @app.route('/contact', methods=['GET', 'POST'])

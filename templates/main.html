@@ -1,137 +1,104 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Znajdź lekarza</title>
-    <link href="../static/styles.css" rel="stylesheet">
-</head>
-<body>
-<header class="header">
-    <div class="container">
-        <a href="/" class="logo-link">
-            <h1>Znajdź lekarza</h1>
-        </a>
-        <div class="auth-links">
-    <a href="/register" class="register">Zarejestruj się</a>
-    <a href="/login" class="login">Zaloguj się</a>
-    <a href="/logout" class="logout" style="display: none;">Wyloguj się</a>
+{% extends "base.html" %}
+
+{% block title %}Znajdź lekarza - Strona główna{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-16 px-4">
+    <!-- Hero Section z grafiką i zaufaniem -->
+    <div class="flex flex-col md:flex-row items-center mb-10">
+        <div class="flex-1 text-center md:text-left">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-indigo-700 mb-4">Znajdź swojego lekarza</h1>
+            <p class="text-lg text-gray-600 mb-4">
+                Szybko i wygodnie umów wizytę online lub stacjonarnie.<br>
+                <span class="inline-block mt-2 text-green-600 font-medium">
+                    Zweryfikowani specjaliści &bull; Bezpieczna rejestracja &bull; Opinie pacjentów
+                </span>
+            </p>
+            <div class="flex items-center justify-center md:justify-start space-x-4 mt-4 mb-6">
+                <img src="{{ url_for('static', filename='img/star.png') }}" alt="Oceny" class="h-8 w-8">
+                <span class="text-lg font-semibold text-yellow-500">4.9/5</span>
+                <span class="text-gray-600 text-sm">Średnia ocena lekarzy</span>
+            </div>
+            <div class="flex items-center justify-center md:justify-start space-x-3">
+                <img src="{{ url_for('static', filename='img/shield.png') }}" alt="Bezpieczeństwo" class="h-6 w-6">
+                <span class="text-green-700 font-medium text-sm">Zaufana platforma zdrowia</span>
+            </div>
+        </div>
+        <div class="flex-1 flex justify-center mb-6 md:mb-0">
+            <img src="{{ url_for('static', filename='img/doctor-hero.svg') }}"
+                 alt="Znajdź lekarza"
+                 class="w-64 md:w-80 drop-shadow-xl rounded-xl bg-white p-3 ring-2 ring-indigo-100">
         </div>
     </div>
-</header>
+    <!-- /Hero Section -->
 
-<main class="main-content">
-    <!-- Sekcja wiadomości flash -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="flash-messages">
-        {% for category, message in messages %}
-        <div class="flash-message {{ category }}">
-            {{ message|safe }}
+    <!-- Wyróżniki zaufania -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-white rounded-xl shadow p-5 flex flex-col items-center text-center">
+            <img src="{{ url_for('static', filename='img/verified-doctor.svg') }}" alt="Zweryfikowani lekarze" class="h-12 w-12 mb-3">
+            <span class="font-semibold text-indigo-700">Zweryfikowani lekarze</span>
+            <span class="text-gray-500 text-sm mt-2">Każdy specjalista jest sprawdzony i posiada opinie pacjentów.</span>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-    {% endwith %}
-
-    <section class="hero">
-        <div class="container">
-            <h2>Znajdź lekarza i umów wizytę</h2>
-            <p>Szukaj wśród setki lekarzy.</p>
-
-            <form class="search-form" action="/search" method="GET">
-                <div class="search-options">
-                    <label>
-                        <input type="radio" name="visit_type" value="gabinet" checked>
-                        W gabinecie
-                    </label>
-                    <label>
-                        <input type="radio" name="visit_type" value="online">
-                        Online
-                    </label>
-                </div>
-
-                <div class="search-fields">
-                    <select name="city_district">
-                        <option value="">miasto lub dzielnica</option>
-                        {% for city in cities %}
-                            <option value="{{ city.id }}">{{ city.name }}</option>
-                        {% endfor %}
-                    </select>
-
-                    <select name="specialization">
-                        <option value="">specjalizacja lub badanie</option>
-                        {% for specialization in specializations %}
-                            <option value="{{ specialization.id }}">{{ specialization.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <button type="submit" class="search-button">Szukaj</button>
-            </form>
+        <div class="bg-white rounded-xl shadow p-5 flex flex-col items-center text-center">
+            <img src="{{ url_for('static', filename='img/calendar-check.svg') }}" alt="Natychmiastowy wybór terminu" class="h-12 w-12 mb-3">
+            <span class="font-semibold text-indigo-700">Rezerwacja w 3 kliknięciach</span>
+            <span class="text-gray-500 text-sm mt-2">Wybierasz termin i lekarza – bez telefonów, bez kolejek.</span>
         </div>
-    </section>
-</main>
-
-<footer class="footer">
-    <div class="container">
-        <div class="footer-columns">
-            <div class="column">
-                <h3>Dla pacjentów</h3>
-                <ul>
-                    <li><a href="#">Lekarze</a></li>
-                    <li><a href="#">Placówki medyczne</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi i zabiegi</a></li>
-                    <li><a href="#">Choroby</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                    <li><a href="#">Aplikacje mobilne</a></li>
-                    <li><a href="#">Blog dla pacjentów</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>O nas</h3>
-                <ul>
-                    <li><a href="#">Placówki</a></li>
-                    <li><a href="#">Lekarze</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>Dla lekarzy</h3>
-                <ul>
-                    <li><a href="#">Praca</a></li>
-                    <li><a href="#">Jak się dostać do naszej listy lekarzy</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>Znajdź lekarza</h3>
-                <address>
-                    Znajdź lekarza Sp. z o.o.<br>
-                    ul. Kamienna 1<br>
-                    55-055 Wrocław, Polska<br>
-                    NIP: 1111111111<br>
-                    KRS: 1111111111<br>
-                    REGON: 1111111111
-                </address>
-            </div>
+        <div class="bg-white rounded-xl shadow p-5 flex flex-col items-center text-center">
+            <img src="{{ url_for('static', filename='img/patient-opinion.svg') }}" alt="Opinie pacjentów" class="h-12 w-12 mb-3">
+            <span class="font-semibold text-indigo-700">Opinie pacjentów</span>
+            <span class="text-gray-500 text-sm mt-2">Decyzję podejmujesz na podstawie doświadczenia innych osób.</span>
         </div>
     </div>
-</footer>
-</body>
-</html>
 
-<script>
-    // Sprawdź wartość ciasteczka "is_logged_in"
-    const isLoggedIn = document.cookie.split('; ').find(row => row.startsWith('is_logged_in='));
-    if (isLoggedIn && isLoggedIn.split('=')[1] === 'true') {
-        document.querySelector('.register').style.display = 'none';
-        document.querySelector('.login').style.display = 'none';
-        document.querySelector('.logout').style.display = 'inline';
-    }
-</script>
+    <!-- Formularz wyszukiwania -->
+    <form id="searchForm" action="{{ url_for('search') }}" method="get" class="bg-white shadow-lg rounded-xl px-8 py-8 space-y-6">
+        <div class="flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Typ wizyty</label>
+                <select name="visit_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Dowolny</option>
+                    <option value="online">Online</option>
+                    <option value="gabinet">Stacjonarna</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Specjalizacja</label>
+                <select name="specialization" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Wybierz specjalizację</option>
+                    {% for specialization in specializations %}
+                    <option value="{{ specialization.id }}">{{ specialization.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Miasto</label>
+                <select name="city_district" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Wybierz miasto</option>
+                    {% for city in cities %}
+                    <option value="{{ city.id }}">{{ city.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sortuj według</label>
+                <select name="sort" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="best">Najlepsi lekarze</option>
+                    <option value="soonest">Najbliższy termin</option>
+                    <option value="rating">Ocena</option>
+                    <option value="name">Nazwisko A-Z</option>
+                </select>
+            </div>
+            <div class="flex-1 flex items-end">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 px-4 rounded-lg font-semibold shadow transition">
+                    Wyszukaj lekarzy
+                </button>
+            </div>
+        </div>
+    </form>
+    <!-- /Form -->
+{% include "chat_widget.html" %}
+</div>
+{% endblock %}

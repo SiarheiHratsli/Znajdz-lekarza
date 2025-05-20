@@ -1,356 +1,498 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Znajdź lekarza – Dentysta, Wrocław</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
-  <style>
-    /* ======== Przykładowe style dla modału ======== */
-    .modal {
-      display: none; /* Ukryty domyślnie */
-      position: fixed;
-      z-index: 9999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0, 0, 0, 0.4);
-    }
+{% extends "base.html" %}
 
-    .modal-content {
-      background-color: #fff;
-      margin: 10% auto;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 500px;
-      position: relative;
-    }
+{% block title %}Wyniki wyszukiwania lekarzy{% endblock %}
 
-    .close {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 24px;
-      font-weight: bold;
-      color: #aaa;
-      cursor: pointer;
-    }
-
-    .close:hover {
-      color: #000;
-    }
-
-    .modal form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .modal form label {
-      font-weight: 600;
-    }
-
-    .modal form input[type="text"],
-    .modal form input[type="email"],
-    .modal form input[type="hidden"] {
-      padding: 8px;
-      font-size: 14px;
-      width: 95%;
-        margin: 0 auto;
-    }
-
-    .modal form input[type="submit"] {
-      padding: 10px;
-      background-color: #0a74da;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-      border-radius: 4px;
-    }
-
-    .modal form input[type="submit"]:hover {
-      background-color: #094a8f;
-    }
-  </style>
-</head>
-<body>
-<header class="header">
-    <div class="container">
-        <a href="/" class="logo-link">
-            <h1>Znajdź lekarza</h1>
-        </a>
-        <div class="auth-links">
-            <a href="/register" class="register">Zarejestruj się</a>
-            <a href="/login" class="login">Zaloguj się</a>
+{% block content %}
+<div class="max-w-6xl mx-auto py-12 px-4">
+    <!-- Hero/Search summary -->
+    <div class="flex flex-col md:flex-row items-center mb-10 md:mb-12">
+        <div class="flex-1 text-center md:text-left mb-6 md:mb-0">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-indigo-700 mb-2">Wyniki wyszukiwania lekarzy</h2>
+            <div class="text-lg text-gray-600">
+                Znaleziono <span class="font-bold text-indigo-700">{{ doctors|length }}</span> lekarzy spełniających kryteria.
+            </div>
         </div>
     </div>
-</header>
-
-<main class="main-content">
-  <section class="hero">
-    <div class="container">
-      {% if doctors %}
-        <h2>{{ specialization['name'] }}, {{ city_district['name'] }}</h2>
-        <p>Wybierz termin wizyty i umów się na spotkanie.</p>
-
-        <div class="doctors-container">
-          {% for doctor in doctors %}
-          <div class="doctor-card">
-            <div class="doctor-left">
-              <img
-                class="doctor-photo"
-                src="../static/doctor.png"
-                alt="Zdjęcie lekarza"
-              />
-              <div class="doctor-info">
-                <h3 class="doctor-name">{{ doctor.name }}
-                  <span class="specialization">{{ doctor.specialization }}</span>
-                </h3>
-                <div class="doctor-rating">
-                  <span class="stars">★★★★★</span>
-                  <span class="reviews">{{ doctor.reviews }} opinii</span>
-                </div>
-                <p class="doctor-address" style="color: black">Adres: {{ doctor.address }}</p>
-                <p class="doctor-services" style="color: black">
-                  <strong>Usługi:</strong><br />
-                  {% for service in doctor.services %}
-                  {{ service.name }}, <strong>{{ service.price }} zł</strong><br />
-                  {% endfor %}
-                  <a href="#" class="show-more-services">Pokaż więcej usług</a>
-                </p>
-              </div>
-            </div>
-
-            <div class="doctor-right">
-              <h4>Dostępne terminy:</h4>
-              <div class="schedule-container">
-                <button class="prev">‹</button>
-                <div class="schedule-table" id="schedule-table">
-                  {% for date in doctor.available_dates %}
-                    <div class="schedule-column">
-                      <h4>{{ date }}</h4>
-                      {% for time in doctor.schedule[date] %}
-                      <div
-                        class="schedule-time {{ 'available' if time.available else 'unavailable' }}"
-                        data-doctor-name="{{ doctor.name }}"
-                        data-date="{{ date }}"
-                        data-time="{{ time.time }}"
-                      >
-                        <span>{{ time.time }}</span>
-                      </div>
-                      {% endfor %}
-                    </div>
-                  {% endfor %}
-                </div>
-                <button class="next">›</button>
-              </div>
-            </div>
-          </div>
-          {% endfor %}
+    <!-- Filter form -->
+    <form method="get" class="bg-white shadow-lg rounded-2xl px-6 py-6 mb-10 flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 items-end">
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Typ wizyty</label>
+            <select name="visit_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="">Dowolny</option>
+                <option value="online" {% if request.args.get('visit_type') == 'online' %}selected{% endif %}>Online</option>
+                <option value="gabinet" {% if request.args.get('visit_type') == 'gabinet' %}selected{% endif %}>Stacjonarna</option>
+            </select>
         </div>
-      {% else %}
-        <h1 style="color: white">Nie znaleziono lekarzy w mieście {{ city_district['name'] }}</h1>
-              <div style="margin-top: 20px;">
-        <a href="/" class="back-button" style="padding:10px 20px; background-color:#143b60; color:white; text-decoration:none; border-radius:4px;">
-          Powrót do strony głównej
-        </a>
-      </div>
-      {% endif %}
-    </div>
-  </section>
-</main>
-
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="container">
-      <div class="footer-columns">
-          <div class="column">
-              <h3>Dla pacjentów</h3>
-              <ul>
-                  <li><a href="#">Lekarze</a></li>
-                  <li><a href="#">Placówki medyczne</a></li>
-                  <li><a href="#">Pytania i odpowiedzi</a></li>
-                  <li><a href="#">Usługi i zabiegi</a></li>
-                  <li><a href="#">Choroby</a></li>
-                  <li><a href="#">Pomoc</a></li>
-                  <li><a href="#">Aplikacje mobilne</a></li>
-                  <li><a href="#">Blog dla pacjentów</a></li>
-              </ul>
-          </div>
-          <div class="column">
-              <h3>O nas</h3>
-              <ul>
-                  <li><a href="#">Placówki</a></li>
-                  <li><a href="#">Lekarze</a></li>
-                  <li><a href="#">Pytania i odpowiedzi</a></li>
-                  <li><a href="#">Usługi</a></li>
-                  <li><a href="#">Pomoc</a></li>
-              </ul>
-          </div>
-          <div class="column">
-              <h3>Dla lekarzy</h3>
-              <ul>
-                  <li><a href="#">Praca</a></li>
-                  <li><a href="#">Jak się dostać do naszej listy lekarzy</a></li>
-                  <li><a href="#">Pytania i odpowiedzi</a></li>
-                  <li><a href="#">Usługi</a></li>
-                  <li><a href="#">Pomoc</a></li>
-              </ul>
-          </div>
-          <div class="column">
-              <h3>Znajdź lekarza</h3>
-              <address>
-                  Znajdź lekarza Sp. z o.o.<br>
-                  ul. Kamienna 1<br>
-                  55-055 Wrocław, Polska<br>
-                  NIP: 1111111111<br>
-                  KRS: 1111111111<br>
-                  REGON: 1111111111
-              </address>
-          </div>
-      </div>
-  </div>
-</footer>
-
-<!-- ==================== MODAL (OKNO REZERWACJI) ==================== -->
-<div id="bookingModal" class="modal">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <h2>Rezerwacja wizyty</h2>
-    <form id="bookingForm" action="/reserve" method="POST">
-      <!-- Pola ukryte do przekazania kluczowych informacji -->
-      <input type="hidden" id="modalDoctorName" name="doctorName" value="">
-      <input type="hidden" id="modalDate" name="date" value="">
-      <input type="hidden" id="modalTime" name="time" value="">
-
-      <label for="patientName">Imię i nazwisko:</label>
-      <input type="text" id="patientName" name="patientName" required />
-
-      <label for="patientPhone">Telefon:</label>
-      <input type="text" id="patientPhone" name="patientPhone" required />
-
-      <label for="patientEmail">Email:</label>
-      <input type="email" id="patientEmail" name="patientEmail" required />
-
-      <input type="submit" value="Zarezerwuj wizytę" />
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Specjalizacja</label>
+            <select name="specialization" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="">Wybierz specjalizację</option>
+                {% for specialization in specializations %}
+                <option value="{{ specialization.id }}" {% if request.args.get('specialization') == specialization.id|string %}selected{% endif %}>{{ specialization.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Miasto</label>
+            <select name="city_district" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="">Wybierz miasto</option>
+                {% for city in cities %}
+                <option value="{{ city.id }}" {% if request.args.get('city_district') == city.id|string %}selected{% endif %}>{{ city.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Sortuj według</label>
+            <select name="sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="best" {% if request.args.get('sort') == 'best' %}selected{% endif %}>Najlepsi lekarze</option>
+                <option value="soonest" {% if request.args.get('sort') == 'soonest' %}selected{% endif %}>Najbliższy termin</option>
+                <option value="rating" {% if request.args.get('sort') == 'rating' %}selected{% endif %}>Ocena</option>
+                <option value="name" {% if request.args.get('sort') == 'name' %}selected{% endif %}>Nazwisko A-Z</option>
+            </select>
+        </div>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-5 rounded-xl font-semibold shadow transition">
+            Filtruj
+        </button>
     </form>
-  </div>
+    <!-- Results grid -->
+    <div class="grid gap-8 md:grid-cols-2">
+        {% for doctor in doctors %}
+        <div class="bg-white shadow-xl rounded-2xl p-6 flex flex-col space-y-5 border border-gray-100 hover:ring-2 hover:ring-indigo-200 transition">
+            <!-- Doctor Info -->
+            <div class="flex items-center">
+                {% set default_photo = url_for('static', filename='img/default-doctor.png') %}
+                <img
+                  src="{{ url_for('static', filename=doctor.photo_url) if doctor.photo_url else default_photo }}"
+                  alt="Zdjęcie lekarza"
+                  class="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-full border-4 border-indigo-100 shadow mr-4 sm:mr-6 bg-white flex-shrink-0"
+                />
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center flex-wrap gap-2">
+                        <span class="text-lg sm:text-xl font-bold text-gray-800 truncate">{{ doctor.first_name }} {{ doctor.last_name }}</span>
+                        {% if doctor.specialization %}
+                        <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg font-semibold truncate">{{ doctor.specialization.name }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center text-gray-500 text-sm mt-1 truncate">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="#4F46E5" class="w-6 h-6">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2c3.866 0 7 3.134 7 7 0 4.42-7 13-7 13S5 13.42 5 9c0-3.866 3.134-7 7-7z" />
+                          <circle cx="12" cy="9" r="2.5" fill="#4F46E5" stroke="white" stroke-width="1" />
+                        </svg>
+                        <span class="truncate">{{ doctor.city.name if doctor.city else 'Lokalizacja nieznana' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Terms - Table Layout with Date Navigation -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm font-semibold text-gray-700">Dostępne terminy:</h4>
+                    <div class="flex items-center space-x-2">
+                        <button
+                            class="text-indigo-600 hover:text-indigo-800 text-xs font-medium flex items-center gap-1 transition-colors duration-200"
+                            onclick="toggleTerms('terms-{{ doctor.id }}')"
+                        >
+                            <span id="toggle-text-{{ doctor.id }}">Pokaż więcej</span>
+                            <svg id="toggle-icon-{{ doctor.id }}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Navigation -->
+                <div class="flex justify-between items-center mb-3 bg-white rounded-lg p-2">
+                    <button
+                        onclick="changeDateRange('{{ doctor.id }}', -3)"
+                        class="text-indigo-600 hover:text-indigo-800 flex items-center p-1 rounded transition-colors"
+                        id="prev-dates-{{ doctor.id }}"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        <span class="text-xs">Wcześniej</span>
+                    </button>
+
+                    <div class="text-sm font-medium text-gray-800" id="date-range-{{ doctor.id }}">
+                        <!-- Dynamicznie wstawiane przez JavaScript -->
+                    </div>
+
+                    <button
+                        onclick="changeDateRange('{{ doctor.id }}', 3)"
+                        class="text-indigo-600 hover:text-indigo-800 flex items-center p-1 rounded transition-colors"
+                        id="next-dates-{{ doctor.id }}"
+                    >
+                        <span class="text-xs">Później</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Calendar Table Layout -->
+                <div class="overflow-hidden">
+                    <!-- Grupujemy terminy według dni -->
+                    {% set terms_by_day = {} %}
+                    {% for term in doctor.available_terms %}
+                        {% set day = term.datetime.strftime("%d.%m") if term.datetime is string else term.datetime|string %}
+                        {% if day not in terms_by_day %}
+                            {% set _ = terms_by_day.update({day: []}) %}
+                        {% endif %}
+                        {% set _ = terms_by_day[day].append(term) %}
+                    {% endfor %}
+
+                    <!-- Lista dni -->
+                    {% set days = terms_by_day.keys()|list %}
+
+                    <!-- Headers - Dates -->
+                    <div class="grid grid-cols-3 gap-1 mb-2 bg-white rounded-t-lg" id="date-headers-{{ doctor.id }}">
+                        <!-- Dynamicznie wstawiane przez JavaScript -->
+                    </div>
+
+                    <!-- Time slots -->
+                    <div class="grid grid-cols-3 gap-1 max-h-48 overflow-hidden transition-all duration-300" id="terms-{{ doctor.id }}">
+                        <!-- Dynamicznie wstawiane przez JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-gray-600">
+                    <p><span class="font-semibold">Telefon:</span> {{ doctor.phone or 'Brak' }}</p>
+                </div>
+                <a  class="bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded-xl font-semibold text-sm shadow transition">
+{#                <a href="{{ url_for('doctor_profile', doctor_id=doctor.id) }}" class="bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded-xl font-semibold text-sm shadow transition">#}
+                    Zobacz profil
+                </a>
+            </div>
+
+            <!-- Hidden data to be used by JavaScript -->
+            <div class="hidden" id="terms-data-{{ doctor.id }}">{{ doctor.available_terms|tojson }}</div>
+        </div>
+        {% else %}
+        <div class="col-span-2 text-center text-gray-500">Nie znaleziono lekarzy spełniających kryteria.</div>
+        {% endfor %}
+    </div>
+
+    <!-- Modal do rezerwacji wizyty -->
+    <div id="booking-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Potwierdzenie rezerwacji wizyty</h3>
+                <button onclick="closeBookingModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form id="booking-form" method="POST" action="{{ url_for('book_appointment') }}">
+                <input type="hidden" id="booking-doctor-id" name="doctor_id">
+                <input type="hidden" id="booking-appointment-date" name="appointment_date">
+
+                <div class="mb-4">
+                    <div class="text-center py-2 bg-gray-50 rounded-lg mb-4">
+                        <p class="font-medium text-gray-800" id="booking-doctor-name"></p>
+                        <p class="text-sm text-gray-600" id="booking-doctor-specialization"></p>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-indigo-50 px-4 py-3 rounded-lg mb-4">
+                        <div class="text-indigo-800">
+                            <span class="font-medium">Data i godzina:</span>
+                            <div id="booking-date-display" class="text-lg font-semibold"></div>
+                        </div>
+
+                        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Uwagi dla lekarza (opcjonalnie):</label>
+                    <textarea id="notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeBookingModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                        Anuluj
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition">
+                        Potwierdź rezerwację
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
-  // --- Harmonogram demo z oryginalnego kodu --- //
-  const scheduleTable = document.getElementById('schedule-table');
-  const prevButton = document.querySelector('.prev');
-  const nextButton = document.querySelector('.next');
+// Obiekty do przechowywania danych dla każdego lekarza
+const doctorsData = {};
 
-  let currentDate = new Date();
+// Funkcja do rozwijania/zwijania terminów
+function toggleTerms(id) {
+    const termsContainer = document.getElementById(id);
+    const doctorId = id.split('-')[1];
+    const toggleText = document.getElementById(`toggle-text-${doctorId}`);
+    const toggleIcon = document.getElementById(`toggle-icon-${doctorId}`);
 
-  const generateSchedule = (startDate) => {
-    scheduleTable.innerHTML = ''; // Clear previous schedule
-    const days = [];
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      days.push(date);
+    if (termsContainer.style.maxHeight === '200px') {
+        termsContainer.style.maxHeight = termsContainer.scrollHeight + 'px';
+        toggleText.innerText = 'Pokaż mniej';
+        toggleIcon.classList.add('rotate-180');
+    } else {
+        termsContainer.style.maxHeight = '200px';
+        toggleText.innerText = 'Pokaż więcej';
+        toggleIcon.classList.remove('rotate-180');
+    }
+}
+
+// Funkcja do grupowania terminów według dni
+function groupTermsByDay(terms) {
+    const result = {};
+
+    terms.forEach(term => {
+        // Konwersja ciągu znaków daty do obiektu Date
+        const termDate = new Date(term.datetime);
+        const day = `${String(termDate.getDate()).padStart(2, '0')}.${String(termDate.getMonth() + 1).padStart(2, '0')}`;
+
+        if (!result[day]) {
+            result[day] = [];
+        }
+
+        result[day].push({
+            ...term,
+            datetime: termDate
+        });
+    });
+
+    return result;
+}
+
+// Funkcja do inicjalizacji danych lekarza
+function initDoctorData(doctorId) {
+    try {
+        // Pobierz dane z ukrytego elementu
+        const termsDataElement = document.getElementById(`terms-data-${doctorId}`);
+        const termsData = JSON.parse(termsDataElement.textContent);
+
+        // Pogrupuj terminy według dni
+        const termsByDay = groupTermsByDay(termsData);
+        const days = Object.keys(termsByDay).sort((a, b) => {
+            // Sortuj dni chronologicznie (DD.MM)
+            const [dayA, monthA] = a.split('.').map(Number);
+            const [dayB, monthB] = b.split('.').map(Number);
+
+            if (monthA !== monthB) return monthA - monthB;
+            return dayA - dayB;
+        });
+
+        // Zapisz dane w globalnej strukturze
+        doctorsData[doctorId] = {
+            termsByDay,
+            days,
+            currentStartIndex: 0
+        };
+
+        // Wyświetl pierwsze 3 dni
+        renderDayHeaders(doctorId);
+        renderTerms(doctorId);
+        updateDateRange(doctorId);
+
+    } catch (error) {
+        console.error(`Błąd podczas inicjalizacji danych dla lekarza ${doctorId}:`, error);
+    }
+}
+
+// Funkcja do zmiany zakresu dat
+function changeDateRange(doctorId, offset) {
+    const doctorData = doctorsData[doctorId];
+    const newIndex = doctorData.currentStartIndex + offset;
+
+    // Sprawdź czy indeks jest w dopuszczalnym zakresie
+    if (newIndex < 0 || newIndex >= doctorData.days.length) {
+        return;
     }
 
-    days.forEach(day => {
-      const dayColumn = document.createElement('div');
-      dayColumn.classList.add('schedule-column');
-      const dayHeader = document.createElement('h4');
-      // Dla uproszczenia: tylko dzień + miesiąc
-      dayHeader.textContent = `${day.getDate()} / ${(day.getMonth() + 1)}`;
-      dayColumn.appendChild(dayHeader);
+    doctorData.currentStartIndex = newIndex;
 
-      // Przykładowe godziny
-      const times = ['19:00', '19:30', '20:00'];
-      times.forEach(time => {
-        const timeBlock = document.createElement('div');
-        timeBlock.classList.add('schedule-time', Math.random() > 0.5 ? 'available' : 'unavailable');
+    renderDayHeaders(doctorId);
+    renderTerms(doctorId);
+    updateDateRange(doctorId);
 
-        // Ustawiamy atrybuty data-* do identyfikacji w JS
-        timeBlock.dataset.doctorName = "Przykładowy lekarz";
-        timeBlock.dataset.date = day.toISOString().split('T')[0];  // YYYY-MM-DD
-        timeBlock.dataset.time = time;
+    // Aktualizuj przyciski nawigacji
+    document.getElementById(`prev-dates-${doctorId}`).disabled = (newIndex === 0);
+    document.getElementById(`next-dates-${doctorId}`).disabled = (newIndex + 3 >= doctorData.days.length);
+}
 
-        // Dodajemy span z samą godziną
-        const timeSpan = document.createElement('span');
-        timeSpan.textContent = time;
-        timeBlock.appendChild(timeSpan);
-        dayColumn.appendChild(timeBlock);
-      });
+// Funkcja do renderowania nagłówków dni
+function renderDayHeaders(doctorId) {
+    const doctorData = doctorsData[doctorId];
+    const headerContainer = document.getElementById(`date-headers-${doctorId}`);
 
-      scheduleTable.appendChild(dayColumn);
-    });
-  };
+    // Wyczyść kontener
+    headerContainer.innerHTML = '';
 
-  prevButton.addEventListener('click', () => {
-    currentDate.setDate(currentDate.getDate() - 5);
-    generateSchedule(currentDate);
-    addClickEventsToTimes();
-  });
+    // Wyświetl nagłówki dla bieżącego zakresu dni (3 dni)
+    for (let i = 0; i < 3; i++) {
+        const dayIndex = doctorData.currentStartIndex + i;
 
-  nextButton.addEventListener('click', () => {
-    currentDate.setDate(currentDate.getDate() + 5);
-    generateSchedule(currentDate);
-    addClickEventsToTimes();
-  });
+        if (dayIndex < doctorData.days.length) {
+            const day = doctorData.days[dayIndex];
+            const date = new Date();
+            const [dayNum, monthNum] = day.split('.').map(Number);
+            date.setDate(dayNum);
+            date.setMonth(monthNum - 1);
 
-  // --- Modal --- //
-  const modal = document.getElementById('bookingModal');
-  const closeBtn = document.querySelector('.close');
-  const bookingForm = document.getElementById('bookingForm');
+            const dayName = new Intl.DateTimeFormat('pl-PL', { weekday: 'short' }).format(date);
 
-  // Funkcja otwierająca modal z danymi
-  function openModal(doctorName, date, time) {
-    // Ustawiamy wartości w polach hidden
-    document.getElementById('modalDoctorName').value = doctorName;
-    document.getElementById('modalDate').value = date;
-    document.getElementById('modalTime').value = time;
-
-    modal.style.display = 'block';
-  }
-
-  // Funkcja zamykająca modal
-  function closeModal() {
-    modal.style.display = 'none';
-    // Opcjonalnie reset formularza
-    bookingForm.reset();
-  }
-
-  // Kliknięcie na „X” – zamknięcie
-  closeBtn.addEventListener('click', closeModal);
-
-  // Kliknięcie poza modal – zamknięcie
-  window.addEventListener('click', (e) => {
-    if (e.target == modal) {
-      closeModal();
+            headerContainer.innerHTML += `
+                <div class="text-center bg-indigo-50 p-2 font-medium text-indigo-700 text-sm">
+                    ${day} (${dayName})
+                </div>
+            `;
+        } else {
+            headerContainer.innerHTML += `
+                <div class="text-center bg-gray-50 p-2 text-gray-400 text-sm">
+                    -
+                </div>
+            `;
+        }
     }
-  });
+}
 
-  // Dodanie listenerów do dostępnych terminów
-  function addClickEventsToTimes() {
-    // Pobieramy wszystkie elementy z klasą .schedule-time.available
-    const availableTimes = document.querySelectorAll('.schedule-time.available');
-    availableTimes.forEach((timeBlock) => {
-      timeBlock.addEventListener('click', () => {
-        // Pobranie danych z atrybutów data-*
-        const doctorName = timeBlock.dataset.doctorName;
-        const date = timeBlock.dataset.date;
-        const time = timeBlock.dataset.time;
+// Funkcja do renderowania terminów
+function renderTerms(doctorId) {
+    const doctorData = doctorsData[doctorId];
+    const termsContainer = document.getElementById(`terms-${doctorId}`);
 
-        // Otwieramy modal
-        openModal(doctorName, date, time);
-      });
+    // Wyczyść kontener
+    termsContainer.innerHTML = '';
+
+    // Stwórz trzy kolumny (dla trzech dni)
+    for (let i = 0; i < 3; i++) {
+        const dayIndex = doctorData.currentStartIndex + i;
+        const column = document.createElement('div');
+        column.className = 'flex flex-col space-y-1';
+
+        if (dayIndex < doctorData.days.length) {
+            const day = doctorData.days[dayIndex];
+            const dayTerms = doctorData.termsByDay[day];
+
+            // Posortuj terminy według godziny
+            dayTerms.sort((a, b) => a.datetime - b.datetime);
+
+            // Dodaj każdy termin do kolumny
+            dayTerms.forEach(term => {
+                const hours = term.datetime.getHours().toString().padStart(2, '0');
+                const minutes = term.datetime.getMinutes().toString().padStart(2, '0');
+
+                const termElement = document.createElement('div');
+                termElement.className = `text-center p-1.5 rounded-md text-sm ${term.is_taken ? 'bg-gray-100 text-gray-400 line-through' : 'bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer'}`;
+                termElement.textContent = `${hours}:${minutes}`;
+
+                // Dodaj obsługę kliknięcia dla wolnych terminów
+                if (!term.is_taken) {
+                    termElement.onclick = function() {
+                        // Otwórz modal z formularzem do rezerwacji
+                        openBookingModal(doctorId, term.datetime, day);
+                    };
+                }
+
+                column.appendChild(termElement);
+            });
+        }
+
+        termsContainer.appendChild(column);
+    }
+}
+
+// Funkcja do aktualizacji wyświetlanego zakresu dat
+function updateDateRange(doctorId) {
+    const doctorData = doctorsData[doctorId];
+    const rangeElement = document.getElementById(`date-range-${doctorId}`);
+
+    if (doctorData.days.length === 0) {
+        rangeElement.textContent = "Brak dostępnych terminów";
+        return;
+    }
+
+    const startIdx = doctorData.currentStartIndex;
+    const endIdx = Math.min(startIdx + 2, doctorData.days.length - 1);
+
+    if (startIdx === endIdx) {
+        rangeElement.textContent = doctorData.days[startIdx];
+    } else {
+        rangeElement.textContent = `${doctorData.days[startIdx]} - ${doctorData.days[endIdx]}`;
+    }
+}
+
+// Funkcja do otwierania modalu rezerwacji
+// Funkcja do otwierania modalu rezerwacji
+function openBookingModal(doctorId, datetime, displayDate) {
+    // Pobierz dane lekarza
+    const doctorNameElement = document.querySelector(`#terms-${doctorId}`).closest('.bg-white').querySelector('.font-bold.text-gray-800');
+    const doctorSpecializationElement = document.querySelector(`#terms-${doctorId}`).closest('.bg-white').querySelector('.text-xs.bg-indigo-100');
+
+    // Ustaw dane w modalu
+    document.getElementById('booking-doctor-id').value = doctorId;
+    document.getElementById('booking-doctor-name').textContent = doctorNameElement.textContent;
+
+    if (doctorSpecializationElement) {
+        document.getElementById('booking-doctor-specialization').textContent = doctorSpecializationElement.textContent;
+    } else {
+        document.getElementById('booking-doctor-specialization').textContent = '';
+    }
+
+    // Formatuj datę - używamy getUTC* zamiast get* aby uniknąć problemów ze strefami czasowymi
+    const year = datetime.getUTCFullYear();
+    const month = String(datetime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(datetime.getUTCDate()).padStart(2, '0');
+    const hours = String(datetime.getUTCHours()).padStart(2, '0');
+    const minutes = String(datetime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(datetime.getUTCSeconds()).padStart(2, '0');
+
+    const formattedDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    document.getElementById('booking-appointment-date').value = formattedDate;
+
+    console.log("Data formattedDate: ", formattedDate); // Do debugowania
+
+    // Przygotuj tekst do wyświetlenia - używamy lokalne wartości do wyświetlenia
+    const localHours = String(datetime.getHours()).padStart(2, '0');
+    const localMinutes = String(datetime.getMinutes()).padStart(2, '0');
+    const dayNames = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'];
+    const monthNames = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+                       'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+
+    const dayOfWeek = dayNames[datetime.getDay()];
+    const dayOfMonth = datetime.getDate();
+    const monthName = monthNames[datetime.getMonth()];
+    const displayTime = `${localHours}:${localMinutes}`;
+
+    document.getElementById('booking-date-display').textContent = `${dayOfMonth} ${monthName}, ${dayOfWeek}, ${displayTime}`;
+
+    // Pokaż modal
+    document.getElementById('booking-modal').classList.remove('hidden');
+}
+
+// Funkcja do zamykania modalu
+function closeBookingModal() {
+    document.getElementById('booking-modal').classList.add('hidden');
+    document.getElementById('notes').value = '';  // Wyczyść pole notatek
+}
+
+// Po załadowaniu strony
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicjalizuj dane dla wszystkich lekarzy
+    document.querySelectorAll('[id^="terms-data-"]').forEach(element => {
+        const doctorId = element.id.split('-')[2];
+        initDoctorData(doctorId);
     });
-  }
 
-  // Inicjalizacja pierwszego harmonogramu i podpięcie kliknięć
-  generateSchedule(currentDate);
-  addClickEventsToTimes();
+    // Ustaw początkową wysokość dla wszystkich kontenerów terminów
+    document.querySelectorAll('[id^="terms-"]').forEach(container => {
+        if (!container.id.includes('data')) {
+            container.style.maxHeight = '200px';
+        }
+    });
+});
 </script>
-</body>
-</html>
+{% endblock %}
