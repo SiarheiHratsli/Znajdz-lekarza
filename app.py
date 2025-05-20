@@ -120,6 +120,22 @@ def search():
 
 
  
+@app.route('/doctors')
+def doctors():
+    doctors = Doctor.query.all()
+    return render_template('doctors.html', doctors=doctors)
+
+@app.route('/specializations')
+def specializations():
+    specializations = Specialization.query.all()
+    return render_template('specializations.html', specializations=specializations)
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        flash('Dziękujemy za kontakt! Odpowiemy najszybciej jak to możliwe.', 'success')
+        return redirect(url_for('contact'))
+    return render_template('send_email.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
