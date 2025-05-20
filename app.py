@@ -183,12 +183,44 @@ def specializations():
     specializations = Specialization.query.all()
     return render_template('specializations.html', specializations=specializations)
 
-@app.route('/contact', methods=['GET', 'POST'])
+@app.route('/kontakt', methods=['GET', 'POST'])
 def contact():
     if request.method == 'POST':
-        flash('Dziękujemy za kontakt! Odpowiemy najszybciej jak to możliwe.', 'success')
+        name = request.form.get('name')
+        email = request.form.get('email')
+        subject = request.form.get('subject', 'Brak tematu')
+        message = request.form.get('message')
+
+        if not name or not email or not message:
+            flash('Proszę uzupełnić wszystkie wymagane pola.', 'danger')
+            return redirect(url_for('contact'))
+
+        body = f"""
+        Imię i nazwisko: {name}
+        E-mail: {email}
+        Temat: {subject}
+
+        Treść wiadomości:
+        {message}
+        """
+
+        msg = Message(
+            subject=f"[Formularz kontaktowy] {subject}",
+            sender=email,
+            recipients=["znajdzlekarza000@gmail.com"],
+            body=body
+        )
+
+        try:
+            mail.send(msg)
+            flash('Dziękujemy za kontakt! Wiadomość została wysłana.', 'success')
+        except Exception as e:
+            flash(f'Wystąpił błąd podczas wysyłania wiadomości: {str(e)}', 'danger')
+
         return redirect(url_for('contact'))
-    return render_template('send_email.html')
+
+    return render_template('contact.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
