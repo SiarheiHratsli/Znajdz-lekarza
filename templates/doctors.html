@@ -1,0 +1,180 @@
+{% extends "template.html" %}
+
+{% block title %}Nasi Lekarze - Znajdź Lekarza{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-12">
+  <h2 class="text-4xl font-bold text-center text-indigo-700 mb-8">Nasi lekarze</h2>
+
+  <!-- Pasek filtrowania -->
+  <form id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <input type="text" id="filter-specialization" placeholder="Specjalizacja" class="p-2 border rounded" />
+    <input type="text" id="filter-city" placeholder="Miasto" class="p-2 border rounded" />
+    <select id="filter-visit" class="p-2 border rounded">
+      <option value="">Typ wizyty</option>
+      <option value="online">Online</option>
+      <option value="gabinet">Gabinet</option>
+      <option value="both">Oba</option>
+    </select>
+    <input type="number" id="filter-price" placeholder="Cena maksymalna" class="p-2 border rounded" />
+    <input type="range" id="filter-experience" min="0" max="50" value="0" class="w-full">
+    <label for="filter-experience" class="text-sm text-gray-600">Min. doświadczenie: <span id="experience-val">0</span> lat</label>
+    <select id="filter-sort" class="p-2 border rounded">
+      <option value="">Sortuj wg ceny</option>
+      <option value="asc">Cena rosnąco</option>
+      <option value="desc">Cena malejąco</option>
+    </select>
+    <div class="col-span-full flex justify-between items-center gap-4 mt-2">
+      <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Filtruj</button>
+      <button type="button" id="filter-reset" class="text-sm text-gray-500 hover:underline">Resetuj filtry</button>
+    </div>
+  </form>
+
+  <!-- Lista lekarzy -->
+  <div id="doctors-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    {% for doctor in doctors %}
+    <div class="doctor-card bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 p-6 relative group animate-fade-in"
+         data-id="{{ doctor.id }}"
+         data-specialization="{{ doctor.specialization.name }}"
+         data-city="{{ doctor.city.name }}"
+         data-visittype="{{ doctor.visit_type }}"
+         data-price="{{ doctor.price }}"
+         data-experience="{{ doctor.experience_years }}">
+      <div class="mb-4">
+        <h3 class="text-xl font-bold text-gray-800 group-hover:text-indigo-600 transition">{{ doctor.first_name }} {{ doctor.last_name }}</h3>
+        <p class="text-sm text-indigo-600 font-medium mb-1">{{ doctor.specialization.name }}</p>
+      </div>
+      <ul class="text-sm text-gray-700 space-y-1">
+        <li><strong>Miasto:</strong> {{ doctor.city.name }}</li>
+        <li><strong>Typ wizyt:</strong> {{ doctor.visit_type }}</li>
+        <li><strong>Doświadczenie:</strong> {{ doctor.experience_years }} lat</li>
+        <li><strong>Cena:</strong> {{ "%.2f" | format(doctor.price) }} zł</li>
+        <li><strong>Opis:</strong> {{ doctor.description or 'Brak opisu' }}</li>
+      </ul>
+      <div class="absolute top-4 right-4 flex items-center gap-2">
+        <!-- Serduszko do ulubionych -->
+        <button class="favorite-btn transition-transform" title="Dodaj do ulubionych">
+          <svg class="w-6 h-6 text-gray-300 hover:text-red-500 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M3.172 5.172a4.001 4.001 0 015.656 0L10 6.343l1.172-1.171a4.001 4.001 0 115.656 5.656L10 18.343 3.172 11.515a4.001 4.001 0 010-5.656z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Skrypt -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("filter-form");
+    const cardsContainer = document.getElementById("doctors-grid");
+    const cards = [...document.querySelectorAll(".doctor-card")];
+
+    const specInput = document.getElementById("filter-specialization");
+    const cityInput = document.getElementById("filter-city");
+    const visitInput = document.getElementById("filter-visit");
+    const priceInput = document.getElementById("filter-price");
+    const expInput = document.getElementById("filter-experience");
+    const sortInput = document.getElementById("filter-sort");
+    const expVal = document.getElementById("experience-val");
+    const resetBtn = document.getElementById("filter-reset");
+
+    // Pokazuj wartość suwaka
+    expInput.addEventListener("input", () => {
+      expVal.textContent = expInput.value;
+    });
+
+    // Ulubieni
+    const loadFavorites = () => new Set(JSON.parse(localStorage.getItem("favorites") || "[]"));
+    const saveFavorites = (set) => localStorage.setItem("favorites", JSON.stringify([...set]));
+    const favorites = loadFavorites();
+
+    const updateFavoriteIcons = () => {
+      document.querySelectorAll(".doctor-card").forEach(card => {
+        const btn = card.querySelector(".favorite-btn svg");
+        const id = card.dataset.id;
+        if (favorites.has(id)) {
+          btn.classList.remove("text-gray-300");
+          btn.classList.add("text-red-500");
+        } else {
+          btn.classList.remove("text-red-500");
+          btn.classList.add("text-gray-300");
+        }
+      });
+    };
+
+    document.querySelectorAll(".favorite-btn").forEach(btn => {
+      btn.addEventListener("click", e => {
+        const card = e.currentTarget.closest(".doctor-card");
+        const id = card.dataset.id;
+        if (favorites.has(id)) {
+          favorites.delete(id);
+        } else {
+          favorites.add(id);
+        }
+        saveFavorites(favorites);
+        updateFavoriteIcons();
+      });
+    });
+
+    // Filtrowanie + sortowanie
+    const applyFilters = () => {
+      const spec = specInput.value.toLowerCase();
+      const city = cityInput.value.toLowerCase();
+      const visit = visitInput.value.toLowerCase();
+      const maxPrice = parseFloat(priceInput.value);
+      const minExp = parseInt(expInput.value);
+      const sortDir = sortInput.value;
+
+      let visibleCards = cards.filter(card => {
+        const d = card.dataset;
+        const match = (!spec || d.specialization.toLowerCase().includes(spec)) &&
+                      (!city || d.city.toLowerCase().includes(city)) &&
+                      (!visit || d.visittype.toLowerCase() === visit) &&
+                      (isNaN(maxPrice) || parseFloat(d.price) <= maxPrice) &&
+                      (isNaN(minExp) || parseInt(d.experience) >= minExp);
+
+        card.style.display = match ? "block" : "none";
+        return match;
+      });
+
+      if (sortDir) {
+        visibleCards.sort((a, b) => {
+          const pA = parseFloat(a.dataset.price), pB = parseFloat(b.dataset.price);
+          return sortDir === "asc" ? pA - pB : pB - pA;
+        });
+        visibleCards.forEach(card => cardsContainer.appendChild(card));
+      }
+    };
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      applyFilters();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      [specInput, cityInput, visitInput, priceInput, expInput, sortInput].forEach(el => el.value = "");
+      expVal.textContent = "0";
+      applyFilters();
+    });
+
+    // Fade-in
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add("opacity-100", "translate-y-0");
+      });
+    }, { threshold: 0.1 });
+
+    cards.forEach(el => {
+      el.classList.add("opacity-0", "translate-y-8", "transition", "duration-700");
+      observer.observe(el);
+    });
+
+    // Start
+    expVal.textContent = expInput.value;
+    updateFavoriteIcons();
+    applyFilters();
+  });
+</script>
+{% endblock %}
