@@ -494,12 +494,5 @@ def cancel_appointment(appointment_id):
     return redirect(url_for('my_appointments'))
 
 
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    if request.method == 'POST':
-        flash('Dziękujemy za kontakt! Odpowiemy najszybciej jak to możliwe.', 'success')
-        return redirect(url_for('contact'))
-    return render_template('send_email.html')
-
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5005)
