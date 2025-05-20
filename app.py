@@ -7,6 +7,14 @@ from db.models.models import *
 from functools import wraps
 from flask_mail import Mail, Message
 
+from collections import OrderedDict
+from datetime import datetime, timedelta, time
+import openai
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = Flask(__name__)
 app.config.from_object(get_config())
 db.init_app(app)
@@ -14,7 +22,6 @@ mail = Mail(app)
 
 def get_serializer():
     return URLSafeTimedSerializer(app.config['SECRET_KEY'])
-
 
 def login_required(f):
     @wraps(f)
@@ -254,6 +261,43 @@ def logout():
     resp.delete_cookie('is_logged_in')
     return resp
 
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_message = request.json.get('message')
+
+    if not user_message:
+        return jsonify({"error": "Brak wiadomości w żądaniu"}), 400
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Jesteś pomocnym asystentem dla użytkowników serwisu znajdź-lekarza."},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.7,
+            max_tokens=150
+        )
+
+        response_message = response.choices[0].message.content
+        return jsonify({"response": response_message})
+
+    except openai.OpenAIError as e:
+        return jsonify({"error": f"Błąd OpenAI: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"error": f"Wystąpił nieoczekiwany błąd: {str(e)}"}), 500
+
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        flash('Dziękujemy za kontakt! Odpowiemy najszybciej jak to możliwe.', 'success')
+        return redirect(url_for('contact'))
+    return render_template('send_email.html')
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5005)
