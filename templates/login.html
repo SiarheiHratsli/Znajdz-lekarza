@@ -1,109 +1,69 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logowanie - Znajdź lekarza</title>
-    <link href="../static/styles.css" rel="stylesheet">
-</head>
-<body>
-<header class="header">
-    <div class="container">
-        <a href="/" class="logo-link">
-            <h1>Znajdź lekarza</h1>
-        </a>
-        <div class="auth-links">
-            <a href="/register" class="register">Zarejestruj się</a>
-            <a href="/login" class="login">Zaloguj się</a>
-        </div>
-    </div>
-</header>
+{% extends "base.html" %}
 
-<main class="main-content">
-    <section class="auth-section">
-        <div class="container">
-            <h2>Logowanie</h2>
+{% block title %}Logowanie - Znajdź lekarza{% endblock %}
 
-            <!-- Wiadomości flash -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
+{% block content %}
+<div class="flex justify-center items-center min-h-[60vh]">
+    <div class="bg-white shadow-lg rounded-xl px-8 py-10 w-full max-w-md">
+        <h2 class="text-2xl font-bold text-indigo-700 mb-6 text-center">Logowanie</h2>
+
+        <!-- Wiadomości flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-            <div class="flash-messages">
+            <div class="mb-4">
                 {% for category, message in messages %}
-                <div class="flash-message {{ category }}">
+                <div class="px-4 py-2 rounded border-l-4 
+                    {% if category == 'success' %}
+                        bg-green-50 border-green-400 text-green-800
+                    {% elif category == 'error' or category == 'danger' %}
+                        bg-red-50 border-red-400 text-red-800
+                    {% else %}
+                        bg-gray-50 border-gray-300 text-gray-700
+                    {% endif %}
+                    mb-2 animate-fade-in">
                     {{ message|safe }}
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
-            {% endwith %}
+        {% endwith %}
 
-            <!-- Formularz logowania -->
-            <form class="auth-form" action="/login" method="POST">
-                <div class="form-field">
-                    <label for="email">Adres e-mail:</label>
-                    <input type="email" id="email" name="email" placeholder="Podaj swój adres e-mail" required>
-                </div>
-                <div class="form-field">
-                    <label for="password">Hasło:</label>
-                    <input type="password" id="password" name="password" placeholder="Wprowadź hasło" required>
-                </div>
-                <button type="submit" class="submit-button">Zaloguj się</button>
-            </form>
-            <p class="auth-link">Nie masz konta? <a href="/register">Zarejestruj się</a></p>
-            <p class="auth-link"><a href="/forgot-password">Zapomniałeś hasła?</a></p>
-        </div>
-    </section>
-</main>
-
-<footer class="footer">
-    <div class="container">
-        <div class="footer-columns">
-            <div class="column">
-                <h3>Dla pacjentów</h3>
-                <ul>
-                    <li><a href="#">Lekarze</a></li>
-                    <li><a href="#">Placówki medyczne</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi i zabiegi</a></li>
-                    <li><a href="#">Choroby</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                    <li><a href="#">Aplikacje mobilne</a></li>
-                    <li><a href="#">Blog dla pacjentów</a></li>
-                </ul>
+        <!-- Formularz logowania -->
+        <form action="/login" method="POST" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Adres e-mail</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Podaj swój adres e-mail"
+                    required
+                    class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                >
             </div>
-            <div class="column">
-                <h3>O nas</h3>
-                <ul>
-                    <li><a href="#">Placówki</a></li>
-                    <li><a href="#">Lekarze</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                </ul>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Hasło</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Wprowadź hasło"
+                    required
+                    class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                >
             </div>
-            <div class="column">
-                <h3>Dla lekarzy</h3>
-                <ul>
-                    <li><a href="#">Praca</a></li>
-                    <li><a href="#">Jak się dostać do naszej listy lekarzy</a></li>
-                    <li><a href="#">Pytania i odpowiedzi</a></li>
-                    <li><a href="#">Usługi</a></li>
-                    <li><a href="#">Pomoc</a></li>
-                </ul>
-            </div>
-            <div class="column">
-                <h3>Znajdź lekarza</h3>
-                <address>
-                    Znajdź lekarza Sp. z o.o.<br>
-                    ul. Kamienna 1<br>
-                    55-055 Wrocław, Polska<br>
-                    NIP: 1111111111<br>
-                    KRS: 1111111111<br>
-                    REGON: 1111111111
-                </address>
-            </div>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded-lg font-semibold shadow transition">
+                Zaloguj się
+            </button>
+        </form>
+        <div class="mt-6 flex flex-col items-center space-y-2 text-sm">
+            <p>Nie masz konta?
+                <a href="/register" class="text-indigo-600 hover:underline font-medium">Zarejestruj się</a>
+            </p>
+            <p>
+                <a href="/forgot-password" class="text-indigo-600 hover:underline font-medium">Zapomniałeś hasła?</a>
+            </p>
         </div>
     </div>
-</footer>
-</body>
-</html>
+</div>
+{% endblock %}

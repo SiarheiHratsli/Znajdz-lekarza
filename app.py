@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from datetime import datetime, timedelta 
 
 from config import *
 from db.models.models import *
@@ -110,6 +111,22 @@ def search():
     )
 
 
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from datetime import datetime, timedelta  # <-- Dodane
+
+from config import *
+from db.models.models import *
+from functools import wraps
+from flask_mail import Mail, Message
+
+app = Flask(__name__)
+app.config.from_object(get_config())
+db.init_app(app)
+mail = Mail(app)
+ 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if 'user_id' in session:
@@ -157,7 +174,9 @@ def register():
             flash('Błąd przy wysyłaniu maila potwierdzającego: ' + str(e), 'danger')
         return redirect(url_for('login'))
 
-    return render_template("register.html")
+    
+    max_birth_date = (datetime.utcnow() - timedelta(days=365 * 18)).strftime('%Y-%m-%d')
+    return render_template("register.html", max_birth_date=max_birth_date)
 
 
 @app.route('/confirm_email/<token>', methods=['GET', 'POST'])
