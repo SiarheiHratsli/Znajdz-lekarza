@@ -1,0 +1,89 @@
+{% extends "template.html" %}
+
+{% block title %}Kontakt - Znajdź Lekarza{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-12">
+  <h2 class="text-3xl font-bold text-center text-indigo-700 mb-10">Skontaktuj się z nami</h2>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+    <!-- Formularz kontaktowy -->
+    <div class="bg-white shadow-lg rounded-xl px-8 py-10 w-full">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-4">
+          {% for category, message in messages %}
+          <div class="px-4 py-2 rounded border-l-4 
+            {% if category == 'success' %}
+              bg-green-50 border-green-400 text-green-800
+            {% elif category == 'error' or category == 'danger' %}
+              bg-red-50 border-red-400 text-red-800
+            {% else %}
+              bg-gray-50 border-gray-300 text-gray-700
+            {% endif %}
+            mb-2 animate-fade-in">
+            {{ message|safe }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" class="space-y-6">
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Imię i nazwisko</label>
+          <input type="text" id="name" name="name" placeholder="Wpisz swoje imię i nazwisko" required
+            class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+        </div>
+
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Adres e-mail</label>
+          <input type="email" id="email" name="email" placeholder="Twój e-mail" required
+            class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+        </div>
+
+        <div>
+          <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Wiadomość</label>
+          <textarea id="message" name="message" rows="5" placeholder="Napisz swoją wiadomość..." required
+            class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"></textarea>
+        </div>
+
+        <button type="submit"
+          class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded-lg font-semibold shadow transition">
+          Wyślij wiadomość
+        </button>
+      </form>
+    </div>
+
+    <!-- Dane firmy -->
+    <div class="bg-gray-50 shadow rounded-xl px-8 py-10">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">Znajdź Lekarza Sp. z o.o.</h3>
+      <ul class="text-gray-700 space-y-4">
+        <li>
+          <strong>Adres:</strong><br>
+          ul. Zdrowia 123<br>
+          00-001 Warszawa, Polska
+        </li>
+        <li>
+          <strong>Telefon:</strong><br>
+          <a href="tel:+48123456789" class="text-indigo-600 hover:underline">+48 123 456 789</a>
+        </li>
+        <li>
+          <strong>E-mail:</strong><br>
+          <a href="mailto:kontakt@znajdzlekarza.pl" class="text-indigo-600 hover:underline">kontakt@znajdzlekarza.pl</a>
+        </li>
+        <li>
+          <strong>Godziny otwarcia:</strong><br>
+          Pon-Pt: 08:00 - 18:00
+        </li>
+        <li>
+          <strong>NIP:</strong> 123-456-78-90
+        </li>
+        <li>
+          <strong>KRS:</strong> 0000123456
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
