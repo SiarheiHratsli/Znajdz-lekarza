@@ -55,12 +55,9 @@
         <div class="container mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm text-gray-600">
             <div>
                 <div class="flex items-center space-x-2 mb-2">
-                    <span class="inline-block rounded-full bg-indigo-500 p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-6 8h4m-2-2v4m8 4a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                    <span class="inline-block">
+                        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo ZnajdźLekarza" class="h-20 w-20" />
                     </span>
-                    <span class="font-semibold text-indigo-700">ZnajdźLekarza</span>
                 </div>
                 <p class="mb-2">
                     Najlepszy serwis do wyszukiwania lekarzy i umawiania wizyt online.<br>
