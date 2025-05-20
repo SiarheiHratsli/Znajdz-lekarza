@@ -161,7 +161,7 @@ def register():
             flash('Błąd przy wysyłaniu maila potwierdzającego: ' + str(e), 'danger')
         return redirect(url_for('login'))
 
-    # Wyliczenie maksymalnej daty urodzenia (osoby 16+ lat)
+    
     max_birth_date = (datetime.utcnow() - timedelta(days=365 * 18)).strftime('%Y-%m-%d')
     return render_template("register.html", max_birth_date=max_birth_date)
 
